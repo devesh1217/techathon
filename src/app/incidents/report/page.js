@@ -1,89 +1,68 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import toast, { Toaster } from 'react-hot-toast';
+import { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function IncidentForm() {
   const [formData, setFormData] = useState({
-    title: '',
-    location: null,  // Automatically captured location
-    images: [],
+    title: "",
+    images: [], // Images to upload
   });
-  const [user, setUser] = useState(null); // Store logged-in user details
-  const router = useRouter();
-
-  useEffect(() => {
-    // Automatically capture location when the component is mounted
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setFormData((prevData) => ({
-            ...prevData,
-            location: { latitude, longitude },
-          }));
-        },
-        (error) => {
-          toast.error('Unable to retrieve your location.');
-        }
-      );
-    } else {
-      toast.error('Geolocation is not supported by this browser.');
-    }
-
-    // Fetch logged-in user details
-    fetch('/api/auth/user')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setUser(data.user); // Assume the API returns the user details
-        } else {
-          toast.error('Unable to fetch user details. Please log in again.');
-          router.push('/auth/login');
-        }
-      })
-      .catch(() => {
-        toast.error('Error fetching user details.');
-        router.push('/auth/login');
-      });
-  }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'images') {
-      setFormData({ ...formData, images: e.target.files });
+    const { name } = e.target;
+    if (name === "images") {
+      setFormData((prevData) => ({
+        ...prevData,
+        images: e.target.files,
+      }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData({ ...formData, [name]: e.target.value });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.location) {
-      toast.error('Location is required.');
-      return;
-    }
+    try {
+      // Upload images to Cloudinary
+      const uploadedImages = [];
+      for (let i = 0; i < formData.images.length; i++) {
+        const imageFile = formData.images[i];
+        const uploadData = new FormData();
+        uploadData.append("file", imageFile);
+        uploadData.append("upload_preset", process.env.UPLOAD_PRESET); // Replace with your preset
+        uploadData.append("cloud_name", process.env.CLOUD_NAME ); // Replace with your cloud name
 
-    const formDataToSend = new FormData();
-    formDataToSend.append('title', formData.title);
-    formDataToSend.append('location', JSON.stringify(formData.location)); // Directly include location in the request
-    formDataToSend.append('reportedBy', user?.id); // Automatically include logged-in user ID
-    Array.from(formData.images).forEach((image) =>
-      formDataToSend.append('images', image)
-    );
+        const res = await fetch("https://api.cloudinary.com/v1_1/your_cloud_name/image/upload", {
+          method: "POST",
+          body: uploadData,
+        });
 
-    const res = await fetch('/api/incidents', {
-      method: 'POST',
-      body: formDataToSend,
-    });
+        const data = await res.json();
+        uploadedImages.push(data.secure_url); // Save the image URL
+      }
 
-    const data = await res.json();
-    if (data.success) {
-      toast.success('Incident reported successfully!');
-      router.push('/incidents');
-    } else {
-      toast.error(data.message);
+      // Send the form data with image URLs to your API
+      const response = await fetch("/api/incidents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          images: uploadedImages, // Send Cloudinary URLs
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success("Incident reported successfully!");
+      } else {
+        toast.error(result.message || "Failed to report incident.");
+      }
+    } catch (err) {
+      toast.error("An error occurred while uploading the images.");
+      console.error(err);
     }
   };
 
@@ -114,6 +93,7 @@ export default function IncidentForm() {
             Report Incident
           </button>
         </form>
+        <Toaster />
       </div>
     </div>
   );
