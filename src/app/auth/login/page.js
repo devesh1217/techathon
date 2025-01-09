@@ -36,7 +36,8 @@ export default function Login() {
     const data = await res.json();
     if (data.success) {
       toast.success('Login successful!');
-      router.push('/dashboard');
+        localStorage.setItem('token', data.token);
+      router.push('/');
     } else {
       toast.error(data.message);
     }

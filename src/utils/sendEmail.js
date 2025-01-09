@@ -28,7 +28,7 @@ export const sendEmail = async ({ to, subject, text = '', html = '', template = 
 
     // Email options
     const mailOptions = {
-      from: `"Team Agrani" <${process.env.EMAIL_USER}>`, // Sender's name and email
+      from: `"Team Pravartaka" <${process.env.EMAIL_USER}>`, // Sender's name and email
       to, // Recipient's email
       subject, // Subject line
       text, // Plain text body
