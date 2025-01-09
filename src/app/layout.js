@@ -3,6 +3,8 @@ import "./globals.css";
 import { Open_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import React, { useEffect } from "react";
+import Navbar from "@/components/common/Navbar";
+import Footer from "@/components/common/Footer";
 
 const openSans = Open_Sans({
   subsets: ["latin"],

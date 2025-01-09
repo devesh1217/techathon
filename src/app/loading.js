@@ -1,5 +1,5 @@
 import React from 'react'
-import Loader from './components/common/Loader'
+import Loader from '@/components/common/Loader'
 
 function loading() {
     return (
