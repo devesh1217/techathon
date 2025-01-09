@@ -1,4 +1,4 @@
-import dbConnect from '@/lib/db'; // Adjust the path to your dbConnect file
+import dbConnect from '@/utils/db'; // Adjust the path to your dbConnect file
 import User from '@/models/user'; // Adjust the path to your User model
 import bcrypt from 'bcrypt';
 import { sendEmail } from '@/utils/sendEmail'; // Import your email utility
