@@ -37,7 +37,6 @@ const userSchema = new mongoose.Schema(
     },
     connectionData: {
       type: Object,
-      default: {},
     },
     verificationToken: String,
     verificationExpires: Date,

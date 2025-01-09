@@ -18,7 +18,7 @@ export async function subscribeUser(sub, userToken) {
     try {
         await connectDB();
         const user = jwt.verify(userToken, process.env.JWT_SECRET);
-        const data = await User.findAndUpdate({ _id: user }, { connectionData: sub });
+        const data = await User.findOneAndUpdate({ _id: user.userId }, { '$set': { connectionData: sub } });
         return { success: true, id: data._id };
     } catch (error) {
         console.error('Error storing subscription:', error);
@@ -30,7 +30,7 @@ export async function unsubscribeUser(id) {
     subscription = null;
     try {
         await connectDB();
-        await connections.deleteOne({ _id: id });
+        await User.findOneAndUpdate({ _id: id }, { connectionData: null });
         return { success: true };
     } catch (error) {
         console.error('Error removing subscription:', error);
@@ -38,36 +38,67 @@ export async function unsubscribeUser(id) {
     }
 }
 
-export async function sendNotification(payload) {
+export async function sendNotificationToAll(payload) {
     try {
         const { title, body: message } = payload
         await connectDB();
-        const data = await connections.find({});
+        const data = await User.find({});
         let cnt = 0;
         // console.log("****",data)
-        await Promise.all(data.map(async (subscription) => {
-            if (!subscription || !subscription.data) {
-                throw new Error('No subscription available');
-            }
-
-            try {
-                await webpush.sendNotification(
-                    subscription.data,
-                    JSON.stringify({
-                        title: title,
-                        body: message,
-                    })
-                );
-                // console.log(subscription)
-                cnt++;
-                return { success: true };
-            } catch (error) {
-                await connections.deleteOne({ _id: subscription._id })
-                // console.error('Error sending push notification:', error);
-                return { success: false, error: 'Failed to send notification' };
+        await Promise.all(data.map(async (curr) => {
+            const subscription = curr.connectionData;
+            if (subscription && subscription.endpoint && subscription.keys) {
+                try {
+                    const temp = await webpush.sendNotification(
+                        subscription,
+                        JSON.stringify({
+                            title: title,
+                            body: message,
+                        })
+                    );
+                    cnt++;
+                    return { success: true };
+                } catch (error) {
+                    await User.findOneAndUpdate({ _id: subscription._id }, { connectionData: null });
+                    // console.error('Error sending push notification:', error);
+                    return { success: false, error: 'Failed to send notification' };
+                }
             }
         }))
-        const after = await connections.countDocuments();
+        const after = await User.countDocuments();
+        return { success: true, totalSent: cnt, totalBefore: data.length, totalAfter: after }
+    } catch (err) {
+        console.log(err)
+        return { success: false }
+    }
+}
+
+export async function sendNotificationToUser(payload, id) {
+    try {
+        const { title, body: message } = payload
+        await connectDB();
+        const data = await User.findById(id);
+        let cnt = 0;
+            const subscription = data.connectionData;
+            if (subscription && subscription.endpoint && subscription.keys) {
+                try {
+                    const temp = await webpush.sendNotification(
+                        subscription,
+                        JSON.stringify({
+                            title: title,
+                            body: message,
+                        })
+                    );
+                    cnt++;
+                    return { success: true };
+                } catch (error) {
+                    await User.findOneAndUpdate({ _id: subscription._id }, { connectionData: null });
+                    // console.error('Error sending push notification:', error);
+                    return { success: false, error: 'Failed to send notification' };
+                }
+            }
+        
+        const after = await User.countDocuments();
         return { success: true, totalSent: cnt, totalBefore: data.length, totalAfter: after }
     } catch (err) {
         console.log(err)
