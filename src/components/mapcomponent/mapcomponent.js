@@ -15,10 +15,10 @@ L.Icon.Default.mergeOptions({
 });
 
 // Example coordinates for a path in Ahmedabad
-// const coordinates = Array.from({ length: 100 }, (_, i) => ({
-//   lat: 23.0225 + i * 0.001,
-//   lng: 72.5714 + i * 0.001,
-// }));
+const coordinates = Array.from({ length: 100 }, (_, i) => ({
+  lat: 23.0225 + i * 0.001,
+  lng: 72.5714 + i * 0.001,
+}));
 
 export default function MapComponent() {
   const [position, setPosition] = useState(coordinates[0]);
