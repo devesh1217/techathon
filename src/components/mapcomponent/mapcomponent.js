@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { useState, useEffect } from 'react';
@@ -14,27 +14,39 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Example coordinates for a path in Ahmedabad
-const coordinates = Array.from({ length: 100 }, (_, i) => ({
-  lat: 23.0225 + i * 0.001,
-  lng: 72.5714 + i * 0.001,
-}));
-
 export default function MapComponent() {
-  const [position, setPosition] = useState(coordinates[0]);
+  const [position, setPosition] = useState({ lat: 23.0225, lng: 72.5714 });
 
   useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      setPosition(coordinates[index]);
-      index = (index + 1) % coordinates.length;
-    }, 1000); // Change marker position every second
+    // Function to update the location
+    const updateLocation = (position) => {
+      const newLocation = {
+        lat: position.coords.latitude + Math.random() * 0.0001,
+        lng: position.coords.longitude + Math.random() * 0.0001,
+        // lat: position.coords.latitude ,
+        // lng: position.coords.longitude ,
+      };
+      console.log('New location:', newLocation);
+      setPosition(newLocation);
+    };
 
-    return () => clearInterval(interval);
+    const geoError = (error) => {
+      console.error('Error getting location:', error.message);
+    };
+
+    // Refresh every 1 second (1000 milliseconds)
+    const interval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(updateLocation, geoError);
+    }, 1000);
+
+    // Cleanup on unmount
+    return () => {
+      clearInterval(interval); // Clear the interval
+    };
   }, []);
 
   return (
-    <MapContainer center={[23.0225, 72.5714]} zoom={13} style={{ height: '100vh', width: '100%' }}>
+    <MapContainer center={[position.lat, position.lng]} zoom={13} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
