@@ -2,13 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import { google } from 'googleapis';
 
 export default function IncidentForm() {
   const [formData, setFormData] = useState({
     title: '',
     location: null,  // Automatically captured location
-    images: [],
+    images: null,
   });
   const [user, setUser] = useState(null); // Store logged-in user details
   const router = useRouter();
@@ -33,7 +32,11 @@ export default function IncidentForm() {
     }
 
     // Fetch logged-in user details
-    fetch('/api/auth/user')
+    fetch('/api/auth/user',{
+      headers:{
+        'Authorization': `Barear ${localStorage.getItem('token')}`
+      }
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -49,6 +52,43 @@ export default function IncidentForm() {
       });
   }, []);
 
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  const handleFileChange = (e) => {
+    setFormData({...formData, images: e.target.files[0]});
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    console.log('***',formData)
+    if (!formData.images) {
+      setUploadStatus('Please select a file.');
+      return;
+    }
+
+    const formUploadData = new FormData();
+    formUploadData.append('file', formData.images);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formUploadData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUploadStatus(`File uploaded successfully! File ID: ${data.fileId}`);
+      } else {
+        setUploadStatus('File upload failed.');
+      }
+      return data;
+    } catch (error) {
+      console.error('Error:', error);
+      setUploadStatus('An error occurred while uploading the file.');
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'images') {
@@ -58,67 +98,29 @@ export default function IncidentForm() {
     }
   };
 
-  const handleFileUploadToGoogleDrive = async (file) => {
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        type: process.env.GOOGLE_CLOUD_TYPE,
-        project_id: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        private_key_id: process.env.GOOGLE_CLOUD_PRIVATE_KEY_ID,
-        private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
-        client_id: process.env.GOOGLE_CLOUD_CLIENT_ID,
-        auth_uri: process.env.GOOGLE_CLOUD_AUTH_URI,
-        token_uri: process.env.GOOGLE_CLOUD_TOKEN_URI,
-        auth_provider_x509_cert_url: process.env.GOOGLE_CLOUD_AUTH_PROVIDER_X509_CERT_URL,
-        client_x509_cert_url: process.env.GOOGLE_CLOUD_CLIENT_X509_CERT_URL,
-      },
-      scopes: ['https://www.googleapis.com/auth/drive.file'],
-    });
-
-    const drive = google.drive({ version: 'v3', auth });
-
-    const fileMetadata = {
-      name: file.name,
-      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID], // Optional: specify folder ID
-    };
-
-    const media = {
-      mimeType: file.type,
-      body: file,
-    };
-
-    const response = await drive.files.create({
-      resource: fileMetadata,
-      media: media,
-      fields: 'id',
-    });
-
-    return response.data.id; // Return the file ID
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    console.log(formData);
+    const uploadData = await handleUpload(e);
     if (!formData.location) {
       toast.error('Location is required.');
       return;
     }
 
-    const formDataToSend = new FormData();
-    formDataToSend.append('title', formData.title);
-    formDataToSend.append('location', JSON.stringify(formData.location)); // Directly include location in the request
-    formDataToSend.append('reportedBy', user?.id); // Automatically include logged-in user ID
-    Array.from(formData.images).forEach((image) =>
-      formDataToSend.append('images', image)
-    );
 
-    const uploadedFileIds = await Promise.all(
-      Array.from(formData.images).map((file) => handleFileUploadToGoogleDrive(file))
-    );
+    const formDataToSend = {
+      title: formData.title,
+      location: formData.location,
+      reportedBy: user?.id,
+      images: uploadData?.fileId,
+    };
 
     const res = await fetch('/api/incidents', {
       method: 'POST',
-      body: formDataToSend,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formDataToSend),
     });
 
     const data = await res.json();
@@ -149,7 +151,7 @@ export default function IncidentForm() {
             name="images"
             accept="image/*"
             multiple
-            onChange={handleChange}
+            onChange={handleFileChange}
             className="w-full p-2 mb-4 border rounded"
             required
           />
