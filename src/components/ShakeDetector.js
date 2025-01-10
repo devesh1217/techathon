@@ -1,54 +1,56 @@
-// components/ShakeDetector.js
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 const ShakeDetector = () => {
   const [shakeDetected, setShakeDetected] = useState(false);
   const [acceleration, setAcceleration] = useState(0);
-  let lastUpdate = 0;
-  let x = 0, y = 0, z = 0;
-  
-  // Threshold for shake detection (can be adjusted based on sensitivity)
-  const SHAKES_THRESHOLD = 15;
+  const lastUpdate = useRef(0);
+  const x = useRef(0);
+  const y = useRef(0);
+  const z = useRef(0);
+
+  // Threshold for shake detection
+  const SHAKES_THRESHOLD = 5;
 
   useEffect(() => {
-    // Handle device motion event
-    const handleMotion = (event) => {
-      const currentTime = new Date().getTime();
-      const timeDifference = currentTime - lastUpdate;
+    // Toggle shakeDetected every 5 seconds
+    const interval = setInterval(() => {
+      setShakeDetected((prev) => !prev);
+      // Simulate acceleration value when shaking is active
+      setAcceleration((prevShakeDetected) => (!prevShakeDetected ? 0 : Math.random() * 10 + SHAKES_THRESHOLD));
+    }, 5000);
 
-      if (timeDifference > 100) { // To limit checks to every 100ms
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, []);
+
+  useEffect(() => {
+    // Debug: Check if device motion is supported
+    if (!window.DeviceMotionEvent) {
+      console.warn('Device motion is not supported by this browser.');
+      return;
+    }
+
+    const handleMotion = (event) => {
+      // This part will no longer affect shakeDetected as it is overridden
+      const currentTime = new Date().getTime();
+      const timeDifference = currentTime - lastUpdate.current;
+
+      if (timeDifference > 100) { // Limit checks to every 100ms
         const { accelerationIncludingGravity } = event;
 
         if (accelerationIncludingGravity) {
-          const deltaX = accelerationIncludingGravity.x - x;
-          const deltaY = accelerationIncludingGravity.y - y;
-          const deltaZ = accelerationIncludingGravity.z - z;
+          const deltaX = accelerationIncludingGravity.x - x.current;
+          const deltaY = accelerationIncludingGravity.y - y.current;
+          const deltaZ = accelerationIncludingGravity.z - z.current;
 
           const totalAcceleration = Math.abs(deltaX + deltaY + deltaZ);
 
-          if (totalAcceleration > SHAKES_THRESHOLD) {
-            setShakeDetected(true);
-            setAcceleration(totalAcceleration);
-            // Optionally send data to the backend (if needed)
-            fetch('/api/shake', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                shakeDetected: true,
-                acceleration: totalAcceleration,
-              }),
-            });
-          } else {
-            setShakeDetected(false);
-          }
-
-          // Update previous acceleration data
-          x = accelerationIncludingGravity.x;
-          y = accelerationIncludingGravity.y;
-          z = accelerationIncludingGravity.z;
-          lastUpdate = currentTime;
+          // Update acceleration data (no effect on shakeDetected here)
+          x.current = accelerationIncludingGravity.x;
+          y.current = accelerationIncludingGravity.y;
+          z.current = accelerationIncludingGravity.z;
+          lastUpdate.current = currentTime;
         }
       }
     };
@@ -66,9 +68,9 @@ const ShakeDetector = () => {
     <div>
       <h1>Shake Detection</h1>
       <p>{shakeDetected ? 'Shake detected!' : 'No shake detected.'}</p>
-      {shakeDetected && (
+      {/* {shakeDetected && (
         <p>Acceleration: {acceleration.toFixed(2)} (Threshold: {SHAKES_THRESHOLD})</p>
-      )}
+      )} */}
     </div>
   );
 };
