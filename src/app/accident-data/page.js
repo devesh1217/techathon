@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from "react";
 
 export default function AccidentDataPage() {
@@ -23,13 +23,13 @@ export default function AccidentDataPage() {
   if (loading) return <p>Loading data...</p>;
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Road Accident Data in India</h1>
-      <table className="table-auto w-full border-collapse border border-gray-300">
+    <div className="container mx-auto p-4 bg-gray-50 mt-20">
+      <h1 className="text-3xl font-semibold text-gray-800 mb-6">Road Accident Data in India</h1>
+      <table className="table-auto w-full border-collapse border border-gray-200 shadow-md rounded-lg bg-white">
         <thead>
-          <tr>
+          <tr className="bg-gray-100">
             {Object.keys(data[0] || {}).map((key, index) => (
-              <th key={index} className="border px-4 py-2 text-left">
+              <th key={index} className="border px-4 py-2 text-left text-gray-600 font-medium">
                 {key}
               </th>
             ))}
@@ -37,9 +37,9 @@ export default function AccidentDataPage() {
         </thead>
         <tbody>
           {data.map((row, rowIndex) => (
-            <tr key={rowIndex}>
+            <tr key={rowIndex} className="hover:bg-gray-50 transition-colors">
               {Object.values(row).map((value, colIndex) => (
-                <td key={colIndex} className="border px-4 py-2">
+                <td key={colIndex} className="border px-4 py-2 text-gray-700">
                   {value}
                 </td>
               ))}
