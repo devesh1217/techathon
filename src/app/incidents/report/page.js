@@ -1,73 +1,82 @@
 "use client";
-import { useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function IncidentForm() {
   const [formData, setFormData] = useState({
-    title: "",
-    images: [], // Images to upload
+    title: '',
+    location: null,
+    images: [],
+    reportedBy: '',
   });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setFormData((prevData) => ({
+            ...prevData,
+            location: { latitude, longitude },
+          }));
+        },
+        () => toast.error('Unable to retrieve your location.')
+      );
+    } else {
+      toast.error('Geolocation is not supported by this browser.');
+    }
+  }, []);
 
   const handleChange = (e) => {
-    const { name } = e.target;
-    if (name === "images") {
-      setFormData((prevData) => ({
-        ...prevData,
-        images: e.target.files,
-      }));
+    const { name, value } = e.target;
+    if (name === 'images') {
+      setFormData({ ...formData, images: e.target.files });
     } else {
-      setFormData({ ...formData, [name]: e.target.value });
+      setFormData({ ...formData, [name]: value });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.location) {
+      toast.error('Location is required.');
+      return;
+    }
+
+    const formDataToSend = new FormData();
+    formDataToSend.append('title', formData.title);
+    formDataToSend.append('location', JSON.stringify(formData.location));
+    formDataToSend.append('reportedBy', formData.reportedBy);
+
+    Array.from(formData.images).forEach((image) => {
+      formDataToSend.append('images', image);
+    });
+
     try {
-      // Upload images to Cloudinary
-      const uploadedImages = [];
-      for (let i = 0; i < formData.images.length; i++) {
-        const imageFile = formData.images[i];
-        const uploadData = new FormData();
-        uploadData.append("file", imageFile);
-        uploadData.append("upload_preset", process.env.UPLOAD_PRESET); // Replace with your preset
-        uploadData.append("cloud_name", process.env.CLOUD_NAME ); // Replace with your cloud name
-
-        const res = await fetch("https://api.cloudinary.com/v1_1/your_cloud_name/image/upload", {
-          method: "POST",
-          body: uploadData,
-        });
-
-        const data = await res.json();
-        uploadedImages.push(data.secure_url); // Save the image URL
-      }
-
-      // Send the form data with image URLs to your API
-      const response = await fetch("/api/incidents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          images: uploadedImages, // Send Cloudinary URLs
-        }),
+      const res = await fetch('/api/incidents/report', {
+        method: 'POST',
+        body: formDataToSend,
       });
 
-      const result = await response.json();
-      if (result.success) {
-        toast.success("Incident reported successfully!");
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Incident reported successfully!');
+        router.push('/incidents');
       } else {
-        toast.error(result.message || "Failed to report incident.");
+        toast.error(data.message);
       }
-    } catch (err) {
-      toast.error("An error occurred while uploading the images.");
-      console.error(err);
+    } catch (error) {
+      toast.error('Error reporting incident.');
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 text-black">
+      <Toaster />
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Report Incident</h2>
         <form onSubmit={handleSubmit}>
@@ -89,11 +98,19 @@ export default function IncidentForm() {
             className="w-full p-2 mb-4 border rounded"
             required
           />
+          <input
+            type="text"
+            name="reportedBy"
+            placeholder="Reported By"
+            value={formData.reportedBy}
+            onChange={handleChange}
+            className="w-full p-2 mb-4 border rounded"
+            required
+          />
           <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
             Report Incident
           </button>
         </form>
-        <Toaster />
       </div>
     </div>
   );
