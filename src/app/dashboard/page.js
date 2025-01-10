@@ -1,5 +1,4 @@
 
-
 import MapComponent from '@/components/mapcomponent/mapcomponent';
 
 export default function Page() {
