@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import {subscribeToPush} from '@/components/extra/PushNotificationManager';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -28,18 +29,21 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const toastId = toast.loading('Logging in...');
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...formData, captchaToken: captcha.token }),
     });
     const data = await res.json();
+    toast.dismiss(toastId);
     if (data.success) {
       toast.success('Login successful!');
-        localStorage.setItem('token', data.token);
-      router.push('/');
+      localStorage.setItem('token', data.token);
+      router.push('/#notification');
     } else {
       toast.error(data.message);
+      fetchCaptcha();
     }
   };
 

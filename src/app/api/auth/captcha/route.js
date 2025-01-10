@@ -10,25 +10,42 @@ export async function GET() {
   ctx.fillRect(0, 0, 200, 50);
 
   // Generate random text
-  const CAPTCHA_LENGTH = 5;
+  const CAPTCHA_LENGTH = 6;
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let captchaText = "";
   for (let i = 0; i < CAPTCHA_LENGTH; i++) {
     captchaText += chars.charAt(Math.floor(Math.random() * chars.length));
   }
 
-  // Draw CAPTCHA text
+  // Draw CAPTCHA text with random rotation and position
   ctx.font = "30px Arial";
   ctx.fillStyle = "#333";
-  ctx.fillText(captchaText, 50, 35);
+  for (let i = 0; i < CAPTCHA_LENGTH; i++) {
+    const x = 20 + i * 30;
+    const y = 30 + Math.random() * 10;
+    const angle = Math.random() * 0.4 - 0.2;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillText(captchaText[i], 0, 0);
+    ctx.restore();
+  }
 
   // Add noise lines
   ctx.strokeStyle = "#ccc";
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     ctx.beginPath();
     ctx.moveTo(Math.random() * 200, Math.random() * 50);
     ctx.lineTo(Math.random() * 200, Math.random() * 50);
     ctx.stroke();
+  }
+
+  // Add noise dots
+  for (let i = 0; i < 100; i++) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.random()})`;
+    ctx.beginPath();
+    ctx.arc(Math.random() * 200, Math.random() * 50, 1, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // Generate a token
