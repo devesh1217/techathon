@@ -18,6 +18,7 @@
     "canvas": "^3.0.1",
     "cloudinary": "^1.41.3",
     "formidable": "^3.5.2",
+    "fs": "^0.0.1-security",
     "geoip-lite": "^1.4.10",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "^9.0.2",
@@ -25,6 +26,7 @@
     "mongoose": "^8.9.3",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "net": "^1.0.2",
     "next": "15.1.4",
     "next-pwa": "^5.6.0",
     "nodemailer": "^6.9.16",
@@ -36,7 +38,9 @@
     "react-leaflet": "^5.0.0",
     "react-webcam": "^7.2.0",
     "socket.io-client": "^4.8.1",
+    "stream": "^0.0.3",
     "tensorflow-models": "^0.0.1",
+    "tls": "^0.0.1",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
