@@ -1,6 +1,5 @@
 "use server"
 import { NextResponse } from 'next/server';
-import { verifyUser } from '@/lib/verifyUser';
 import jwt from 'jsonwebtoken';
 
 export const config = {
