@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import {subscribeToPush} from '@/components/extra/PushNotificationManager';
+import { subscribeUser } from '@/app/actions';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -17,6 +17,18 @@ export default function Login() {
     fetchCaptcha();
   }, []);
 
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4); // Add missing padding
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/'); // Replace URL-safe chars
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
   const fetchCaptcha = async () => {
     const res = await fetch('/api/auth/captcha');
     const data = await res.json();
@@ -26,6 +38,22 @@ export default function Login() {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  async function subscribeToPush() {
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      ),
+    });
+    const data = await subscribeUser(sub, localStorage.getItem('token'));
+    if (data.success) {
+      localStorage.setItem('push-id', data.id);
+    } else {
+      alert('Error in subscription!');
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,6 +68,7 @@ export default function Login() {
     if (data.success) {
       toast.success('Login successful!');
       localStorage.setItem('token', data.token);
+      subscribeToPush();
       router.push('/#notification');
     } else {
       toast.error(data.message);
